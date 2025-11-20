@@ -14,9 +14,9 @@ DEFAULT_COLUMN = "EM"
 DEFAULT_PIXEL_SIZE = 10.0 
 DEFAULT_MIN_CUTOFF = 64.0
 DEFAULT_MAX_CUTOFF = 326.0
-DEFAULT_BOUND_WIDTH = 5.0  # Width of the black line in meters
+DEFAULT_BOUND_WIDTH = 5.0 
 
-# --- CUSTOM COLOR RAMP (Red -> Green) ---
+# --- CUSTOM COLOR RAMP ---
 def create_custom_cmap(min_val, max_val):
     breaks = [180, 197, 206, 228, 247, 260, 272]
     span = max_val - min_val
@@ -53,7 +53,7 @@ def get_epsg(datum, zone):
     return epsg_map.get((datum, zone))
 
 def main():
-    print("\n--- EM Survey Interpretation & Visualization System ---\n")
+    print("\n--- EM Survey Production Generator (Anti-Aliased) ---\n")
 
     # 1. Setup
     datum = input("Enter Datum (GDA94 / GDA2020) [Default: GDA94]: ").strip().upper() or "GDA94"
@@ -121,22 +121,28 @@ def main():
         except Exception as e:
             print(f"Clipping warning: {e}")
 
-    # 5. Generate PNG Image
-    print("Generating Overlay Image...")
+    # 5. Generate PNG Image (High Quality Anti-Aliased)
+    print("Generating High-Res Overlay Image...")
     img_output = base_path + "_Overlay.png"
     cmap = create_custom_cmap(min_cut, max_cut)
     
     plt.figure(figsize=(10, 10), frameon=False)
-    plt.imshow(grid_z, cmap=cmap, vmin=min_cut, vmax=max_cut, origin='lower')
+    
+    # --- ANTI-ALIASING SETTINGS ---
+    # interpolation='bicubic' smooths the pixels
+    # origin='lower' keeps it right-side up
+    plt.imshow(grid_z, cmap=cmap, vmin=min_cut, vmax=max_cut, origin='lower', interpolation='bicubic')
+    
     plt.axis('off')
-    plt.savefig(img_output, bbox_inches='tight', pad_inches=0, transparent=True)
+    # dpi=300 makes the output sharp (Retina quality)
+    plt.savefig(img_output, bbox_inches='tight', pad_inches=0, transparent=True, dpi=300)
     plt.close()
 
     # 6. Create KML
     print("Constructing Google Earth KML...")
     kml = simplekml.Kml()
     
-    # A. Add Ground Overlay (The Heatmap)
+    # A. Add Ground Overlay (The Heatmap) - DRAW ORDER 0 (Bottom)
     bounds_poly = gpd.GeoSeries([box(x_min, y_min, x_max, y_max)], crs=epsg)
     bounds_wgs84 = bounds_poly.to_crs(epsg=4326)
     wgs_minx, wgs_miny, wgs_maxx, wgs_maxy = bounds_wgs84.total_bounds
@@ -147,34 +153,28 @@ def main():
     ground.latlonbox.south = wgs_miny
     ground.latlonbox.east = wgs_maxx
     ground.latlonbox.west = wgs_minx
-    ground.color = "ccffffff" # Semi-transparent
+    ground.color = "ccffffff"
+    ground.draworder = 0  # FORCE BOTTOM
 
-    # B. Add Boundary Line (as a Thick Solid Polygon)
+    # B. Add Boundary Line - DRAW ORDER 99 (Top)
     if bound_path and os.path.exists(bound_path):
         print(f"Drawing {bound_width}m wide Boundary Line...")
         
-        # Buffer the boundary to make it thick
-        # buffer(width/2) makes it grow outwards by half the width in both directions
         thick_bound = bound_gdf.copy()
         thick_bound['geometry'] = thick_bound.geometry.buffer(bound_width / 2)
-        
-        # Reproject to Lat/Long for KML
         thick_bound_wgs84 = thick_bound.to_crs(epsg=4326)
         
         for geom in thick_bound_wgs84.geometry:
-            # Handle MultiPolygons
             polys = [geom] if geom.geom_type == 'Polygon' else geom.geoms
-            
             for poly in polys:
                 kml_poly = kml.newpolygon(name="Boundary")
                 kml_poly.outerboundaryis = list(poly.exterior.coords)
-                
-                # Solid Black (ff = Alpha, 000000 = Black)
                 kml_poly.style.polystyle.color = "ff000000" 
                 kml_poly.style.polystyle.outline = 0
+                kml_poly.draworder = 99 # FORCE TOP
 
     # 7. Save KMZ
-    kmz_output = base_path + "_Map_V1.kmz"
+    kmz_output = base_path + "_Production.kmz"
     kml.savekmz(kmz_output)
     
     print(f"Success! Saved to: {kmz_output}")
