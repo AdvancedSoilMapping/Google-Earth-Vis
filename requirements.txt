@@ -1,3 +1,2 @@
 geopandas
 simplekml
-`[[1](https://www.google.com/url?sa=E&q=https%3A%2F%2Fvertexaisearch.cloud.google.com%2Fgrounding-api-redirect%2FAUZIYQF30xR9luUXrt_ND3nydYVTlXXYZ2PHWn2wFf7txzNl9HqcaXPupixE1BktNGLzxfIb8rjSgwXAjgPbEZc_RVSM0-Qa5Nvwai4jPomiQsNIKcZHXL1GD12k5_S9VmcP56qRLDb_PAIo_vB038eP0VlnpkTR8l-2FOHwZH-FkM93sSX9G5piwn3O3FBFuLzJQHNzQr-yHd3r98na6V-ZUpx2L9VW2DxxLzvtdSwooO94Y5pcSbKDjpjxXiy9x-p61fmuTKE%3D)]``
