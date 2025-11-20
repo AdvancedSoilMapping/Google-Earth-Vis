@@ -59,3 +59,15 @@ Desktop.ini
 
 # VS Code (if you use it later)
 .vscode/
+
+# GIS Data Files (prevent uploading large survey data)
+*.shp
+*.shx
+*.dbf
+*.sbn
+*.sbx
+*.kmz
+*.kml
+*.ssf
+*.cor
+*.imp
